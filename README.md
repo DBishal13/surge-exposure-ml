@@ -96,6 +96,11 @@ for real predictions (~$109k for a high-surge/low-elevation building vs.
 ~$11k for a low-surge/high-elevation one — the right direction). Full
 command output in [`EVIDENCE.md`](EVIDENCE.md).
 
+| | |
+|---|---|
+| ![Live query against the Model Serving endpoint](screenshots/ml-query-endpoint.png) | ![MLflow run showing the severity model registered to Unity Catalog](screenshots/ml-mlflow-severity-run.png) |
+| A real request/response against the live endpoint. | The winning run, registered straight to UC from this page. |
+
 ## Run it yourself
 
 **Fastest path**: open `RUN_ME_train_and_register.py` as a Databricks
