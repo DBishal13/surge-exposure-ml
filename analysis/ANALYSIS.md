@@ -67,4 +67,41 @@ is now a specific, named test case: does `surge-exposure-ml`'s trained
 severity model also fail there, or does it pick up signal the hand-picked
 heuristic structurally cannot?
 
+## Answered: yes, but not for the reason you'd want
+
+Queried the live Model Serving endpoint for a representative French
+Quarter building (`surge_ft=0, height_m=4.78, flood_active=0,
+region=french-quarter-nola`):
+
+```
+$ python serving/query_endpoint.py --profile surge-exposure \
+    --surge-ft 0.0 --height-m 4.78 --flood-active 0 --region french-quarter-nola
+Predicted: $64,510.84
+```
+
+That's within 0.1% of the real cell average ($64,575.62) — the trained
+model "catches" the exact blind spot the heuristic misses.
+
+**But look at what it had to work with.** Every building in this cell has
+`surge_ft = 0.0` and `flood_active = False` — no exceptions, no variance
+at all (confirmed via `training_data.csv`). Those two features carry
+*zero* information for this region. The only way the model can be this
+accurate is by keying almost entirely off the `region_slug_french-quarter-
+nola` one-hot and effectively looking up that region's mean payout —
+exactly the confound `README.md` already names as a risk with only 13
+grid cells ("a model can 'win' mainly by learning per-region average
+payouts rather than a real surge/severity relationship").
+
+So the honest framing for wiring this into the agent (next step) isn't
+"the model understands NOLA's flood risk the heuristic missed." It's: *the
+model has memorized this region's historical average loss, which happens
+to be a much better guess than the heuristic's hardcoded zero — but it
+would be equally confident and equally right-for-the-wrong-reason for any
+other region with a similarly uniform feature profile, and it has learned
+nothing that would transfer to a NOLA building the model hasn't
+effectively already seen the region-average for.* That distinction —
+"better number, unclear generalization" — is exactly the kind of
+provenance-aware caveat the agent should be able to state out loud, not
+just a bigger number to report.
+
 Full per-cell table: [`8region_grid.csv`](8region_grid.csv).
