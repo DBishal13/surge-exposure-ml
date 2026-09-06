@@ -99,9 +99,47 @@ to be a much better guess than the heuristic's hardcoded zero — but it
 would be equally confident and equally right-for-the-wrong-reason for any
 other region with a similarly uniform feature profile, and it has learned
 nothing that would transfer to a NOLA building the model hasn't
-effectively already seen the region-average for.* That distinction —
-"better number, unclear generalization" — is exactly the kind of
-provenance-aware caveat the agent should be able to state out loud, not
-just a bigger number to report.
+effectively already seen the region-average for.* That query used the
+live serving endpoint, which is fit on *all* data including NOLA's own
+label — so it can only show what the model memorized, not what it
+generalizes to. The systematic check below re-does this properly.
 
-Full per-cell table: [`8region_grid.csv`](8region_grid.csv).
+## Systematic check: a general rule, not one anecdote
+
+`map_blind_spots.py` re-runs this across all 13 cells using **honest
+out-of-fold predictions** (`GroupKFold` on `cell_id`, identical scheme to
+`train_model.py` — a cell held out in a given fold is never seen, its
+label included, during that fold's training). This is the fair test of
+whether the model would have caught a blind spot *in advance*, not after
+memorizing it.
+
+**Headline: the honest, cross-validated model still wins in aggregate.**
+Cell-level correlation with real severity: heuristic r = 0.719, model
+(out-of-fold) r = **0.843**. That's a real improvement, not leakage.
+
+**But it is not uniformly better, and one case makes that concrete:**
+
+| Cell | Heuristic score | Real severity | Model (honest OOF) | Verdict |
+|---|---:|---:|---:|---|
+| French Quarter, NOLA | 0.000 | $64,576 | $27,158 | Model closes ~40% of the gap — real improvement, still underrates |
+| Galveston Seawall | 0.011 | $52,437 | $29,195 | Same pattern — partial, not full, correction |
+| **Clearwater Beach** | 0.128 | $77,257 | **$28,377** | **Model is worse than the heuristic here** — underpredicts by ~63% where the heuristic was already reasonably close |
+| Fort Myers Beach (3 cells) | 0.19–0.20 | $85k–$130k | tracks closely | Both already work — this is the county the original study validated on |
+
+Full ranked table: [`blind_spot_map.csv`](blind_spot_map.csv).
+
+**The general rule, then, isn't "prefer the model" or "prefer the
+heuristic" — it's "flag disagreement."** Clearwater Beach is the reason a
+naive "always trust the bigger/learned number" policy would fail: there,
+the simple heuristic beats a legitimately, honestly cross-validated
+model. What both the NOLA/Galveston cases and the Clearwater
+counter-example have in common is that they're all places where the two
+methods *disagree sharply* — which is exactly the signal worth surfacing
+to a human (or an agent's write tool) automatically, regardless of which
+side turns out to be right. That's the concrete design input for wiring
+this into `surge-exposure-agent`: report both numbers, don't silently
+prefer either, and treat large disagreement itself as the trigger for
+review.
+
+Full per-cell tables: [`8region_grid.csv`](8region_grid.csv),
+[`blind_spot_map.csv`](blind_spot_map.csv).
