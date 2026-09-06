@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+mlruns/
+mlartifacts/
+*.egg-info/
+*.db
+
+# Raw claim dump is 20MB+ and trivially regenerated via fetch_nfip_claims.py
+# (no API key, ~1 min) -- training_data.csv (the small, real, derived
+# dataset the reported results came from) is committed, this isn't.
+data/claims_raw.csv
