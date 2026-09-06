@@ -69,7 +69,7 @@ def main() -> None:
     mlflow.set_tracking_uri(args.tracking_uri)
     # Databricks-hosted experiments must live under a workspace path.
     on_databricks = args.tracking_uri.startswith("databricks")
-    experiment_name = f"/Users/shared/{args.experiment}" if on_databricks else args.experiment
+    experiment_name = f"/Users/beesal13dh@gmail.com/{args.experiment}" if on_databricks else args.experiment
     mlflow.set_experiment(experiment_name)
 
     df = pd.read_csv(args.data)

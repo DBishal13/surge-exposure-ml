@@ -25,7 +25,7 @@ MODEL_NAME = "workspace.surge_exposure.claim_risk_model"
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", default="surge-exposure")
-    parser.add_argument("--experiment", default="/Users/shared/surge_exposure_claim_risk")
+    parser.add_argument("--experiment", default="/Users/beesal13dh@gmail.com/surge_exposure_claim_risk")
     parser.add_argument("--target", choices=["frequency", "severity"], default="severity",
                          help="severity had the stronger original correlation (r=0.52 vs r=0.37)")
     args = parser.parse_args()

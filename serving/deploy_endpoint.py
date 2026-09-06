@@ -49,7 +49,7 @@ def main() -> None:
         print(f"Creating endpoint {ENDPOINT_NAME} serving {MODEL_NAME} v{args.model_version} ...")
         w.serving_endpoints.create(
             name=ENDPOINT_NAME,
-            config=EndpointCoreConfigInput(served_entities=[served_entity]),
+            config=EndpointCoreConfigInput(name=ENDPOINT_NAME, served_entities=[served_entity]),
         )
 
     print(f"\nEndpoint '{ENDPOINT_NAME}' requested. It takes a few minutes to come up --")

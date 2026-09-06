@@ -57,7 +57,7 @@ stated here rather than hidden, and it's why evaluation below uses a
 random one: a random split would leak the answer between train and test
 since many buildings share a label.
 
-## Real results (verified locally, no Databricks needed to reproduce this part)
+## Real results (verified locally, then reproduced live on Databricks)
 
 - **140,732 real NFIP claims** fetched live from FEMA's public OpenFEMA API
   (capped at 20,000/county to keep the fetch fast -- some of these counties,
@@ -88,6 +88,13 @@ whenever `n_cells < 30`. Confirming a true causal within-region effect
 would need finer-grained claim geocoding than NFIP's public redaction
 allows, or address-level data via a data-sharing agreement, which is out of
 scope for this project.
+
+**Verified end-to-end on a real Databricks workspace** on 2026-09-06: the
+severity run was registered as `workspace.surge_exposure.claim_risk_model`
+v1 in Unity Catalog, deployed to a live Model Serving endpoint, and queried
+for real predictions (~$109k for a high-surge/low-elevation building vs.
+~$11k for a low-surge/high-elevation one — the right direction). Full
+command output in [`EVIDENCE.md`](EVIDENCE.md).
 
 ## Run it yourself
 
@@ -125,14 +132,34 @@ python query_endpoint.py --profile surge-exposure --surge-ft 8.5 --height-m 6.0 
 - **v2 API deprecation**: `data/fetch_nfip_claims.py` uses FEMA's
   `FimaNfipClaims` v2 endpoint, deprecated 2026-10-15 in favor of a renamed
   v3 dataset. Fine for now; re-point `BASE_URL` before that date.
-- **Free Edition serving availability** isn't guaranteed -- if
-  `deploy_endpoint.py` fails on quota/entitlement, that's a workspace-tier
-  limit, not a code bug. Batch inference
+- **Free Edition serving availability**: confirmed working (see
+  `EVIDENCE.md`) — a Small, scale-to-zero endpoint took about 10 minutes to
+  provision. Batch inference
   (`mlflow.pyfunc.load_model("models:/workspace.surge_exposure.claim_risk_model/latest")`
-  in a notebook) works regardless of serving availability.
+  in a notebook) also works and is instant by comparison if you don't need
+  a live REST endpoint.
 - **`agent_tool/predict_claim_risk.sql`** is a real, signature-matched
   starting point (not a vague sketch) but is not applied to the deployed
   `surge_exposure_agent` automatically -- it's an opt-in extension.
+
+## Things learned the hard way
+
+- MLflow 3.x's file-based tracking store is in maintenance mode and throws
+  on use — default to a `sqlite:///` URI instead of `file:./mlruns`.
+- Databricks-hosted MLflow experiments must live under a real workspace
+  directory (`/Users/<your-email>/...`) — a placeholder path like
+  `/Users/shared/...` fails with `NOT_FOUND: Parent directory does not
+  exist` on a Free Edition workspace where that folder was never created.
+- The installed `databricks-sdk`'s `EndpointCoreConfigInput` requires
+  `name` as an explicit argument, not just implied by the surrounding
+  `create()` call — omitting it fails with a `TypeError`, not a clearer
+  serving-specific error.
+- MLflow prints a 🏃 emoji in its "View run" URL; Windows terminals default
+  to `cp1252`, which can't encode it, crashing the script's own success
+  message — the run had already logged fine server-side. Run with
+  `PYTHONIOENCODING=utf-8` to see the rest of the output.
+- Some NFIP claims have null lat/lon even after generalization — drop them
+  before computing grid cells, don't assume every row is geocoded.
 
 ## Credits
 
