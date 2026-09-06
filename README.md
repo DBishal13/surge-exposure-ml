@@ -16,29 +16,28 @@ honestly either way.
 
 ## Architecture
 
-```
-FEMA OpenFEMA API (real NFIP claims, no key)
-        │  data/fetch_nfip_claims.py
-        ▼
-data/claims_raw.csv  ──┐
-                        │  data/prepare_training_data.py
-data/buildings.csv  ────┤  (grid-cell join -- see "Methodology")
-  (from surge-exposure-agent, real, already validated)
-                        ▼
-data/training_data.csv
-        │  training/train_model.py  (MLflow-tracked, local or Databricks)
-        ▼
-MLflow run: heuristic baseline vs. trained GBM, both scored against real claims
-        │  registry/register_model.py
-        ▼
-Unity Catalog: workspace.surge_exposure.claim_risk_model
-        │  serving/deploy_endpoint.py
-        ▼
-Model Serving endpoint  ──►  serving/query_endpoint.py (REST demo client)
-        │  (optional)
-        ▼
-agent_tool/predict_claim_risk.sql  -- a possible 7th tool for the
-already-deployed surge_exposure_agent
+```mermaid
+flowchart TD
+    FEMA(["FEMA OpenFEMA API<br/>real NFIP claims · no key"]) --> Fetch
+    Fetch["fetch_nfip_claims.py"] --> Raw[("claims_raw.csv")]
+    Buildings[("buildings.csv<br/>from surge-exposure-agent<br/>real, already validated")] --> Join
+    Raw --> Join["prepare_training_data.py<br/>grid-cell join"]
+    Join --> Training[("training_data.csv")]
+
+    subgraph WORKSPACE["DATABRICKS WORKSPACE"]
+        direction TB
+        Training --> Train["train_model.py<br/>MLflow · GroupKFold CV"]
+        Train -->|register_model.py| Registry[("Unity Catalog<br/>claim_risk_model")]
+        Registry -->|deploy_endpoint.py| Serving["Model Serving<br/>surge-exposure-claim-risk"]
+    end
+
+    Serving --> Query["query_endpoint.py<br/>REST demo client"]
+    Serving -.optional.-> Tool["predict_claim_risk.sql<br/>7th tool for surge_exposure_agent"]
+
+    classDef hub fill:#dfeaec,stroke:#1c6e8c,stroke-width:2px;
+    classDef ext fill:#ffffff,stroke:#7b8390,stroke-width:1.5px;
+    class Registry hub
+    class FEMA,Buildings ext
 ```
 
 ## Methodology: joining on a grid, not an address
