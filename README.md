@@ -17,6 +17,7 @@ honestly either way.
 ## Architecture
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#7b8390", "primaryTextColor": "#1f2937", "lineColor": "#7b8390"}}}%%
 flowchart TD
     FEMA(["FEMA OpenFEMA API<br/>real NFIP claims · no key"]) --> Fetch
     Fetch["fetch_nfip_claims.py"] --> Raw[("claims_raw.csv")]
@@ -34,10 +35,16 @@ flowchart TD
     Serving --> Query["query_endpoint.py<br/>REST demo client"]
     Serving -.optional.-> Tool["predict_claim_risk.sql<br/>7th tool for surge_exposure_agent"]
 
-    classDef hub fill:#dfeaec,stroke:#1c6e8c,stroke-width:2px;
-    classDef ext fill:#ffffff,stroke:#7b8390,stroke-width:1.5px;
+    style WORKSPACE fill:#f6fafb,stroke:#8fb9c4,stroke-width:1.5px,stroke-dasharray:4 3
+
+    classDef hub fill:#dfeaec,stroke:#1c6e8c,stroke-width:2px,color:#123842;
+    classDef store fill:#fdf1e0,stroke:#c98a3d,stroke-width:1.5px,color:#6b4a17;
+    classDef ext fill:#eef1f6,stroke:#7b8390,stroke-width:1.5px,color:#333c46;
+    classDef proc fill:#f4f2fb,stroke:#8b86ad,stroke-width:1.5px,color:#37325c;
     class Registry hub
-    class FEMA,Buildings ext
+    class Raw,Buildings,Training store
+    class FEMA ext
+    class Fetch,Join,Train,Serving,Query,Tool proc
 ```
 
 ## Methodology: joining on a grid, not an address
